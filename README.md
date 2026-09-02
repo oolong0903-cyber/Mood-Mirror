@@ -4,6 +4,8 @@
 
 **这是一个规则驱动的分析工具，不是大模型套壳**：全流程不调用任何外部 API / LLM，每个指标都来自可检查的词典与规则，可解释、可复现、可离线运行。它源自我对抑郁人群语言特征的学术研究——把论文里的文本分析方法，做成了人人可用的网页工具。
 
+**🟢 在线体验**：<https://mood-mirror-pbjvot7hzmap25sfnanvyf.streamlit.app/>
+
 ![主界面](docs/screenshot_main.png)
 
 ---
