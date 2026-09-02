@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 学术语料不进公开仓库（部署用内置词典回退；本地运行可自行放置 dutir.csv）
+dutir.csv
+情绪词汇本体/
+情感词汇本体/
+情感词汇本体.zip
+情绪词典.csv
+
+# 系统文件
+Thumbs.db
+.DS_Store

@@ -1,0 +1,9 @@
+# 该应用的 Streamlit 主题配置（只影响本 app）。
+# 固定为浅色舒缓配色，避免正文文字随主题变成白字。
+
+[theme]
+base = "light"
+primaryColor = "#6E9E87"
+backgroundColor = "#F5F7F5"
+secondaryBackgroundColor = "#EEF3EE"
+textColor = "#3E4A43"
