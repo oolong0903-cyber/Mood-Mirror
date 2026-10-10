@@ -6,8 +6,6 @@
 
 **🟢 在线体验**：<https://mood-mirror-pbjvot7hzmap25sfnanvyf.streamlit.app/>
 
-![主界面](docs/screenshot_main.png)
-
 ---
 
 ## 功能

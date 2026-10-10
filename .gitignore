@@ -19,8 +19,15 @@ SUBTLEX-CH/
 .workbuddy/
 20261009_情绪镜项目书_详细提纲.md
 
-# 大体积演示素材
+# 大体积演示素材与界面截图（不入仓库）
 *.mp4
+docs/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
 
 # 系统文件
 Thumbs.db
