@@ -4,7 +4,8 @@
 ================================================
 功能：
   1) 情绪识别：喜悦 / 悲伤 / 愤怒 / 焦虑 / 平静 / 中性，
-     并输出 效价（valence，0-100）与 唤醒度（arousal，0-100）。
+     并输出一条按强度占比分配宽度的三色构成条（消极 / 中性 / 积极），
+     直接呈现整体情绪构成。不输出任何数值型效价/唤醒度分值（基准点未经标定）。
   2) LIWC 风格语言特征：情感词占比、认知加工词（我想/我觉得/我认为）、
      否定词（不/没/无…）、绝对化词（总是/从不/永远/一定）、第一人称「我」频次。
   3) 认知扭曲识别（CBT 启发，启发式匹配）：灾难化 / 非黑即白 / 过度概括 /
@@ -89,14 +90,16 @@ EMOTION_WORDS = {
     ],
 }
 
-# 情绪类别在效价(横轴)-唤醒(纵轴)环状模型上的基准值：
-#   valence: -1(很负面) ~ +1(很正面)；arousal: 0(很平静) ~ 1(很激动)
+# 六个可输出的情绪类别（作为合法类别的白名单，供词典加载时校验）。
+# 历史上此处存放过各情绪在环状模型上的效价/唤醒度基准点，但那几个常数未经
+# 量表标定、强度权重又会被加权平均约掉，故已不再用于计算任何对外指标。
+# 保留本字典仅为校验外部词典的类别码是否合法。
 EMOTION_BASE = {
-    "喜悦": (0.62, 0.50),   # 正效价、中高唤醒
-    "平静": (0.28, 0.12),   # 略正、低唤醒
-    "悲伤": (-0.58, 0.30),  # 负效价、低-中唤醒
-    "愤怒": (-0.60, 0.85),  # 负效价、高唤醒
-    "焦虑": (-0.42, 0.70),  # 负效价、高唤醒
+    "喜悦": (0.62, 0.50),
+    "平静": (0.28, 0.12),
+    "悲伤": (-0.58, 0.30),
+    "愤怒": (-0.60, 0.85),
+    "焦虑": (-0.42, 0.70),
     "中性": (0.00, 0.15),
 }
 
@@ -405,23 +408,12 @@ def analyze(text: str) -> dict:
 
     emotion_token_n = sum(cat_counts.values())
 
-    # ---- 效价 / 唤醒度：强度加权平均 ---- #
-    wsum = sum(cat_intensity.values())
-    if wsum > 0:
-        v_sum = a_sum = 0.0
-        for cat, w in cat_intensity.items():
-            base_v, base_a = EMOTION_BASE[cat]
-            # 同类情绪出现次数越多，置信度略微上调（上限 1.0）
-            s = 0.7 + 0.3 * min(1.0, cat_counts[cat] / 3.0)
-            v_sum += base_v * s * w
-            a_sum += base_a * s * w
-        valence_01 = max(-1.0, min(1.0, v_sum / wsum))
-        arousal_01 = max(0.0, min(1.0, a_sum / wsum))
-    else:
-        valence_01, arousal_01 = 0.0, 0.15
-
-    valence = round(50 + valence_01 * 50, 1)      # 0~100
-    arousal = round(arousal_01 * 100, 1)          # 0~100
+    # 注：此处曾计算 valence / arousal（效价 / 唤醒度），已移除。
+    # 原因：那六个基准点是手工常数、未经量表标定，且情绪强度在加权平均中会被
+    # 约掉（单情绪下分子分母同时含强度，"有点难过"与"我要死了"输出相同）。
+    # 该结果缺乏实证依据，不适合作为对外呈现的测量指标。
+    # 情绪的「构成比例」改由 cat_intensity 经三色构成条呈现（见 composition_mix），
+    # 刻意不输出任何数值型效价/唤醒度分值。
 
     # ---- 主导情绪 ---- #
     if emotion_token_n == 0:
@@ -468,10 +460,9 @@ def analyze(text: str) -> dict:
         "sentence_n": sent_n,
         # 情绪
         "cat_counts": dict(cat_counts),
+        "cat_intensity": dict(cat_intensity),
         "dominant": dominant,
         "dominant_words": dominant_words,
-        "valence": valence, "valence_label": _valence_label(valence),
-        "arousal": arousal, "arousal_label": _arousal_label(arousal),
         "emotion_rich": rich,
         # 语言特征（计数 + 每千字率 + 占比）
         "emotion_token_n": emotion_token_n,
@@ -491,20 +482,61 @@ def analyze(text: str) -> dict:
     }
 
 
-def _valence_label(v: float) -> str:
-    if v < 42:
-        return "偏负向"
-    if v > 58:
-        return "偏正向"
-    return "中性区间"
+def valence_label(v: float) -> str:
+    """已废弃：保留仅为向后兼容，界面与解读语均不再调用。
+
+    原逻辑把 valence 分数映射为「偏负向/中性/偏正向」，但其基准点为手工常数、
+    未经标定，且情绪强度会被加权平均约掉。现改用三色构成条呈现构成比例。
+    """
+    return ""
 
 
-def _arousal_label(a: float) -> str:
-    if a < 35:
-        return "低唤醒 · 平静舒缓"
-    if a > 65:
-        return "高唤醒 · 强烈"
-    return "中等唤醒"
+def arousal_label(a: float) -> str:
+    """已废弃：保留仅为向后兼容，界面与解读语均不再调用（同上）。"""
+    return ""
+
+
+# 三色构成：把六类情绪按效价方向归入 消极 / 中性 / 积极 三档。
+# 用「强度总和」而非词频计数——同一类情绪词写得越多越集中，条形越长，
+# 这样条形能反映情绪的份量，而不只是命中次数。
+MIX_GROUPS = [
+    ("消极", ("悲伤", "愤怒", "焦虑"), "#9CA7BE"),
+    ("中性", ("平静",),       "#B7BFA9"),
+    ("积极", ("喜悦",),       "#7FB69A"),
+]
+
+
+def composition_mix(r: dict) -> list:
+    """返回 [(档位名, 占比0~100, 颜色), ...]，占比按该档情绪词的强度总和计算。
+
+    无情绪词命中时，中性档占满 100%（整段文字被视为情绪中性）。
+    """
+    inten = r.get("cat_intensity", {})
+    if not inten:
+        return [("中性", 100.0, "#B7BFA9")]
+    total = sum(inten.values()) or 1
+    out = []
+    for name, cats, color in MIX_GROUPS:
+        w = sum(inten.get(c, 0) for c in cats)
+        if w > 0:
+            out.append((name, round(w / total * 100, 1), color))
+    return out or [("中性", 100.0, "#B7BFA9")]
+
+
+def render_mixbar(mix: list) -> None:
+    """渲染横向三色构成条 + 图例。"""
+    segs = "".join(
+        f'<span style="width:{pct:.1f}%;background:{color}" title="{name} {pct:.1f}%"></span>'
+        for name, pct, color in mix
+    )
+    legend = "".join(
+        f'<span><i style="background:{color}"></i>{name} <b>{pct:.1f}%</b></span>'
+        for name, pct, color in mix
+    )
+    st.markdown(
+        f'<div class="mixbar">{segs}</div><div class="mixlegend">{legend}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # =====================================================================
@@ -672,10 +704,12 @@ def interpretation(r: dict) -> str:
     else:
         wd = "、".join(w for w, _ in r["dominant_words"][:4]) if r["dominant_words"] else ""
         extra = f"（如「{wd}」）" if wd else ""
+        # 构成描述直接由三色构成条的数据生成，避免复述无依据的数值指标
+        mix_desc = "、".join(f"{n} {p:.0f}%" for n, p, _ in composition_mix(r))
         parts.append(
-            f"整体来看，这段文字流露的情绪以「{d}」为主{extra}，效价偏"
-            f"「{r['valence_label']}」（{r['valence']} 分），唤醒度属"
-            f"「{r['arousal_label']}」（{r['arousal']} 分）。{_mood_hint(d)}"
+            f"整体来看，这段文字流露的情绪以「{d}」为主{extra}，"
+            f"情绪构成上{('以' + mix_desc + '为主') if len(composition_mix(r)) > 1 else mix_desc}。"
+            f"{_mood_hint(d)}"
         )
 
     cr = r["rates"]["cog"]
@@ -779,6 +813,28 @@ CSS = f"""
     }}
     .metric-value {{ font-size:1.9rem; font-weight:700; line-height:1.15; }}
     .metric-label {{ color:{PALETTE['muted']}; font-size:.8rem; margin-top:.15rem; }}
+    /* 效价/唤醒度降级为定性标签：分值不再对外展示，只给三档色调 */
+    .tone {{ font-size:1.3rem; font-weight:700; line-height:1.35; margin-top:.1rem; }}
+    /* 三色构成条：消极 / 中性 / 积极，宽度按情绪强度占比分配 */
+    .mixbar {{
+        display:flex; height:26px; border-radius:999px; overflow:hidden;
+        background:{PALETTE['line']}; margin:.45rem 0 .4rem;
+    }}
+    .mixbar > span {{ display:block; height:100%; }}
+    .mixlegend {{
+        display:flex; flex-wrap:wrap; gap:14px;
+        color:{PALETTE['muted']}; font-size:.8rem; margin-top:.2rem;
+    }}
+    .mixlegend i {{
+        display:inline-block; width:10px; height:10px; border-radius:2px;
+        margin-right:5px; vertical-align:middle; font-style:normal;
+    }}
+    .mixlegend b {{ color:{PALETTE['ink']}; font-weight:500; }}
+    .tone-cap {{
+        color:{PALETTE['muted']}; font-size:.76rem; line-height:1.6;
+        background:{PALETTE['bg']}; border:1px solid {PALETTE['line']};
+        border-radius:10px; padding:.5rem .7rem; margin-top:.5rem;
+    }}
     .chip {{
         display:inline-block; background:#EFF5F1; color:{PALETTE['ink']};
         border-radius:999px; padding:.18rem .65rem; font-size:.82rem;
@@ -855,26 +911,28 @@ def render_analysis(r: dict):
 
     # ---------- 1) 情绪识别 ----------
     st.markdown('<div class="sec-title">📊 情绪识别</div>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns([1, 2])
     dom_color = PALETTE["emoji"].get(r["dominant"], "#B7BFA9")
     with c1:
         st.markdown(
-            f'<div class="softcard"><span class="metric-label">主导情绪</span><br>'
+            f'<div class="softcard" style="margin-bottom:0"><span class="metric-label">主导情绪</span><br>'
             f'<span class="emobadge" style="background:{dom_color}">{r["dominant"]}</span></div>',
             unsafe_allow_html=True,
         )
     with c2:
         st.markdown(
-            f'<div class="softcard"><span class="metric-label">效价 Valence · {r["valence_label"]}</span><br>'
-            f'<span class="metric-value">{r["valence"]}</span></div>',
+            '<div class="softcard" style="margin-bottom:.4rem">'
+            '<span class="metric-label">情绪构成 · 消极 / 中性 / 积极</span>',
             unsafe_allow_html=True,
         )
-    with c3:
-        st.markdown(
-            f'<div class="softcard"><span class="metric-label">唤醒度 Arousal · {r["arousal_label"]}</span><br>'
-            f'<span class="metric-value">{r["arousal"]}</span></div>',
-            unsafe_allow_html=True,
-        )
+        render_mixbar(composition_mix(r))
+
+    st.markdown(
+        '<div class="tone-cap">色条按各类情绪词的<b>强度占比</b>分配宽度，'
+        '混合情绪会各占一段——能直接看出消极与积极各占多少，而不是被折成一个中性的结论。'
+        '无情绪词命中时整条视为中性。</div>',
+        unsafe_allow_html=True,
+    )
 
     # 篇幅信息 + 情绪分布：放进同一张白底卡片（左文右图）
     with st.container(border=True):

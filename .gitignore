@@ -10,6 +10,18 @@ dutir.csv
 情感词汇本体.zip
 情绪词典.csv
 
+# 外部版权语料库（CAWS / SUBTLEX-CH，均含版权数据，仅本地研究用）
+CAWS中国情绪词库/
+SUBTLEX-CH/
+
+# 项目内部材料（含未公开的研究思路，不进公开仓库）
+备份/
+.workbuddy/
+20261009_情绪镜项目书_详细提纲.md
+
+# 大体积演示素材
+*.mp4
+
 # 系统文件
 Thumbs.db
 .DS_Store
